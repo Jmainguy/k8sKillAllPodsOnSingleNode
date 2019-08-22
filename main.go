@@ -1,8 +1,8 @@
 package main
 
 import (
-    "fmt"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	//"time"
@@ -20,8 +20,8 @@ func main() {
 	} else {
 		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-    
-    nodeName := flag.String("nodeName", "", "node to kill all pods on, forcibly")
+
+	nodeName := flag.String("nodeName", "", "node to kill all pods on, forcibly")
 	flag.Parse()
 
 	// use the current context in kubeconfig
@@ -40,16 +40,19 @@ func main() {
 		panic(err.Error())
 	}
 
-    deleteOptions := &metav1.DeleteOptions{}
-    graceSeconds := int64(0)
-    deleteOptions.GracePeriodSeconds = &graceSeconds
 	for _, v := range pods.Items {
 		if v.Spec.NodeName == *nodeName {
-            fmt.Printf("Killing pod %s in namespace %s\n", v.ObjectMeta.Name, v.ObjectMeta.Namespace)
-	        err := clientset.CoreV1().Pods(v.ObjectMeta.Namespace).Delete(v.ObjectMeta.Name, deleteOptions)
-    	    if err != nil {
-		        panic(err.Error())
-	        }
+			kill := true
+			if len(v.ObjectMeta.OwnerReferences) > 0 {
+				for _, owner := range v.ObjectMeta.OwnerReferences {
+					if owner.Kind == "DaemonSet" {
+						kill = false
+					}
+				}
+			}
+			if kill {
+				killPods(v.ObjectMeta.Namespace, v.ObjectMeta.Name, clientset)
+			}
 		}
 	}
 }
@@ -59,4 +62,15 @@ func homeDir() string {
 		return h
 	}
 	return os.Getenv("USERPROFILE") // windows
+}
+
+func killPods(namespace, name string, clientset *kubernetes.Clientset) {
+	deleteOptions := &metav1.DeleteOptions{}
+	graceSeconds := int64(0)
+	deleteOptions.GracePeriodSeconds = &graceSeconds
+	fmt.Printf("Killing pod %s in namespace %s\n", name, namespace)
+	err := clientset.CoreV1().Pods(namespace).Delete(name, deleteOptions)
+	if err != nil {
+		panic(err.Error())
+	}
 }
