@@ -15,3 +15,9 @@ Login to your kubernetes cluster, then run
 ./k8sKillAllPodsOnSingleNode --nodeName ocp-app-01a.example.com
 ```
 
+
+### OC equivalent
+You can bypass this tool and just use an oc command like
+```/bin/bash
+oc adm drain ocp-app-01a.example.com --force --grace-period=0 --delete-local-data --ignore-daemonsets
+```
