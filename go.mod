@@ -2,7 +2,7 @@ module github.com/jmainguy/k8sKillAllPodsOnSingleNode
 
 go 1.21
 
-toolchain go1.22.0
+toolchain go1.22.3
 
 require (
 	k8s.io/apimachinery v0.29.3
